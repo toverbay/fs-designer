@@ -2,6 +2,9 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useCanvasMouse } from '@/composables/canvasMouse'
+import { ShapeSystems } from '@/systems'
+import type { ShapeSystem } from '@/systems/ShapeSystem'
+import { PathCommand, type StyledShape } from '@/shapes'
 
 const workspace = useWorkspaceStore()
 
@@ -39,6 +42,20 @@ onMounted(() => {
     setCanvasRef(canvasRef.value)
   }
 
+  // Test shape drawing
+  workspace.addEllipse(382, 214, 50, 35)
+  workspace.addLine(700, 700, 1196, 582)
+  workspace.addPath([
+    PathCommand.moveTo(939, 203),
+    PathCommand.lineTo(1166, 267),
+    PathCommand.lineTo(955, 438),
+    PathCommand.lineTo(868, 367),
+    PathCommand.lineTo(843, 226),
+    PathCommand.close()
+  ])
+  workspace.addPolygon(550, 470, 5, 50)
+  workspace.addStar(420, 750, 5, 60, 30)
+  workspace.addTriangle(670, 260, 780, 370, 630, 350)
   ctx = canvasRef.value?.getContext('2d') || null
   resizeCanvas()
   drawAll()
@@ -92,13 +109,34 @@ function drawAll() {
   const localCtx = ctx
 
   // Draw existing shapes from the store
-  workspace.shapes.forEach((shape) => {
-    if (shape.type === 'rect') {
-      localCtx.strokeStyle = 'white'
-      localCtx.lineWidth = 2
-      localCtx.strokeRect(shape.x, shape.y, shape.w, shape.h)
+  for (const shape of workspace.shapes) {
+    const system: ShapeSystem = ShapeSystems[shape.kind]
+
+    ctx.save()
+
+    const { strokeColor, strokeWidth, fillColor } = shape as StyledShape
+    let doStroke = false
+    if (strokeColor) {
+      ctx.strokeStyle = strokeColor
+      doStroke = true
     }
-  })
+    if (strokeWidth && strokeWidth > 0) {
+      ctx.lineWidth = strokeWidth
+      doStroke = true
+    }
+
+    system.draw(localCtx, shape as any)
+
+    if (fillColor) {
+      ctx.fillStyle = fillColor
+      ctx.fill()
+    }
+    if (doStroke) {
+      ctx.stroke()
+    }
+
+    ctx.restore()
+  }
 
   // In-progress rectangle outline if drawing
   if (isDrawing.value && workspace.currentTool === 'rectangle') {
@@ -125,6 +163,7 @@ function handleMouseDown(e: MouseEvent) {
 }
 
 function handleMouseMove(e: MouseEvent) {
+
   if (!isDrawing.value) return
 
   currentX.value = e.offsetX

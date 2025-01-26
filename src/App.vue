@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import FsCanvas from './components/FsCanvas.vue'
+import FsMouseStatus from './components/FsMouseStatus.vue';
 import FsToolbar from './components/FsToolbar.vue'
 </script>
 
@@ -21,7 +22,7 @@ import FsToolbar from './components/FsToolbar.vue'
     </main>
   
     <footer>
-      <p>Footer</p>
+      <FsMouseStatus/>
     </footer>
   </div>
 </template>
